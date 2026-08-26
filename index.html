@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>P.E. Wordbook v1.1.20 — Mobile UX</title>
+<title>P.E. Wordbook v1.1.21 — Mobile UX + Popup 50</title>
 <style>
 :root{--main:#08aec3;--red:#ff5b61;--green:#10a77a;--ink:#222;--muted:#8b8b8b;--bg:#f7f8f9;--line:#eee;--soft:#eefbfc}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;color:var(--ink);background:var(--bg)}
@@ -33,7 +33,7 @@ header{padding:12px}
 h1{font-size:22px}
 .sub{font-size:12px}
 nav{gap:6px;margin-top:10px}nav button{padding:8px 12px}
-.resultOverlay{padding:0}.resultPopup{top:43%}
+.resultOverlay{padding:0}.resultPopup{top:50%}
 .grid{grid-template-columns:1fr 1fr}
 .progress{font-size:12px;margin-bottom:5px}
 .quizword{padding:24px 12px 20px;margin-bottom:8px;border-radius:14px}
@@ -43,7 +43,22 @@ nav{gap:6px;margin-top:10px}nav button{padding:8px 12px}
 .option{padding:12px 14px;margin:5px 0;font-size:16px;border-radius:12px}
 .detailWord{font-size:30px}
 }
-</style></head>
+</style>
+<style id="mobile-compact-v1-1-21">
+@media (max-width: 600px) {
+  .header, header { padding-top: 8px !important; padding-bottom: 8px !important; }
+  .nav, .navBar, .topNav { gap: 6px !important; }
+  .nav button, .nav a, .topNav button, .topNav a { padding: 8px 12px !important; font-size: 15px !important; }
+  .quizCard, .questionCard, .wordCard { padding: 18px !important; }
+  .quizCard .word, .questionCard .word { font-size: clamp(32px, 8vw, 48px) !important; }
+  .quizCard .timer, .questionCard .timer { transform: scale(.88); }
+  .quizOption, .choice, .answerChoice { padding: 14px 16px !important; margin-bottom: 8px !important; }
+  .quizOption .meaning, .choice .meaning, .answerChoice .meaning { line-height: 1.25 !important; }
+  .quizPage, .quizContainer, main { padding-top: 8px !important; padding-bottom: 8px !important; }
+}
+</style>
+
+</head>
 <body>
 <header><h1>P.E. Wordbook</h1><div class="sub">개인 공부용 · v1.1.19 — Quiz Counts Final</div>
 <nav><button id="navHome" class="active">홈</button><button id="navQuiz">퀴즈</button><button id="navWrong">틀린 단어</button><button id="navChunks">Chunk</button><button id="navRecords">학습 기록</button><button id="navStats">통계</button><button id="navSettings">설정</button></nav></header>
