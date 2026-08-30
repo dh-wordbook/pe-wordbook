@@ -58,9 +58,31 @@ nav{gap:6px;margin-top:10px}nav button{padding:8px 12px}
 }
 </style>
 
+
+<style id="mobile-ux-v1-1-22">
+@media (max-width:520px){
+  /* 실제 퀴즈 화면(.quizword/.option)에 맞춘 초압축 레이아웃 */
+  .quizword{padding:16px 10px 14px !important;margin-bottom:6px !important;border-radius:13px !important}
+  .quizword .word{font-size:27px !important;line-height:1.08 !important}
+  .timer{width:46px !important;height:46px !important;font-size:21px !important;border-width:4px !important;margin-bottom:5px !important}
+  .speak{padding:5px 9px !important;font-size:13px !important;margin-top:5px !important}
+  .option{padding:9px 12px !important;margin:4px 0 !important;font-size:14px !important;line-height:1.28 !important;border-radius:11px !important}
+  .option .posTag{font-size:12px !important}
+  main{padding:7px !important}
+  .progress{font-size:11px !important;margin-bottom:4px !important}
+
+  /* 팝업 액션을 상단으로 당기고 2열 배치하여 보기 영역과 시각적으로 분리 */
+  .resultPopup{top:50% !important;padding:20px 18px !important}
+  .resultPopup .popupActions{display:grid !important;grid-template-columns:1fr 1fr !important;gap:8px !important;margin:10px 0 12px !important}
+  .resultPopup .popupActions .btn{margin-top:0 !important;padding:11px 8px !important;font-size:14px !important}
+  .resultPopup .speak{margin-top:0 !important;margin-bottom:2px !important}
+}
+.popupActions{display:flex;gap:10px;justify-content:center;margin:10px 0 12px}
+.popupActions .btn{flex:1;margin-top:0}
+</style>
 </head>
 <body>
-<header><h1>P.E. Wordbook</h1><div class="sub">개인 공부용 · v1.1.19 — Quiz Counts Final</div>
+<header><h1>P.E. Wordbook</h1><div class="sub">개인 공부용 · v1.1.22 — Mobile UX + Popup Actions</div>
 <nav><button id="navHome" class="active">홈</button><button id="navQuiz">퀴즈</button><button id="navWrong">틀린 단어</button><button id="navChunks">Chunk</button><button id="navRecords">학습 기록</button><button id="navStats">통계</button><button id="navSettings">설정</button></nav></header>
 <main id="app"></main><div id="toast" class="toast hidden"></div>
 <script>
@@ -462,12 +484,14 @@ function showPopup(type,w,selected){
   let p=document.createElement("div"); p.className="resultOverlay";
   p.innerHTML=`<div class="resultPopup ${type}">
     <div class="popupWord">${esc(w.word)}</div>
+    <div class="popupActions">
+      <button class="btn secondary" onclick="let p=this.closest('.resultOverlay');if(p._advanceTimer)clearTimeout(p._advanceTimer);openDetail(${w.id});p.remove()">단어 상세 보기</button>
+      <button class="btn" onclick="let p=this.closest('.resultOverlay');if(p._advanceTimer)clearTimeout(p._advanceTimer);p.remove();continueQuizAfterPopup()">다음 문제</button>
+    </div>
+    <button class="speak" onclick="speakWord(${JSON.stringify(w.word)})">🔊 발음 다시 듣기</button>
     ${type==="bad"?`<div class="myAnswer">내 선택${renderMeaning(selected,true)}</div>`:""}
     ${type==="timeout"?`<div class="timeoutMsg">제한 시간 안에 답을 선택하지 못했어요.</div>`:""}
     <div class="correctAnswer"><span>✓ 정답</span>${renderMeaning(w.meaning,true)}</div>
-    <button class="speak" onclick="speakWord(${JSON.stringify(w.word)})">🔊 발음 다시 듣기</button>
-    <button class="btn secondary" onclick="let p=this.closest('.resultOverlay');if(p._advanceTimer)clearTimeout(p._advanceTimer);openDetail(${w.id});p.remove()">단어 상세 보기</button>
-    <button class="btn" onclick="let p=this.closest('.resultOverlay');if(p._advanceTimer)clearTimeout(p._advanceTimer);p.remove();continueQuizAfterPopup()">다음 문제</button>
     <div style="margin-top:12px">${title}</div>
   </div>`;
   document.body.appendChild(p);
