@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>P.E. Wordbook v1.1.21 — Mobile UX + Popup 50</title>
+<title>P.E. Wordbook v1.1.23 — Mobile UX + Popup 40</title>
 <style>
 :root{--main:#08aec3;--red:#ff5b61;--green:#10a77a;--ink:#222;--muted:#8b8b8b;--bg:#f7f8f9;--line:#eee;--soft:#eefbfc}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;color:var(--ink);background:var(--bg)}
@@ -15,7 +15,7 @@ nav button{transition:.12s ease;font-weight:700}nav button:active{font-weight:90
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.stat{text-align:center;padding:18px;background:#fff;border-radius:14px}.num{font-size:30px;font-weight:800}.label{color:var(--muted);font-size:13px}
 .day{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid var(--line)}.day:last-child{border:0}
 .quizword{text-align:center;background:var(--main);color:#fff;border-radius:16px;padding:35px 16px 28px;margin-bottom:12px}.quizword .word{font-size:38px;font-weight:800}
-.progress{text-align:right;font-size:13px;margin-bottom:8px}.option{width:100%;text-align:left;background:#fff;padding:18px;border-radius:14px;margin:7px 0;border:2px solid transparent;font-weight:600}.option:hover{border-color:var(--main)}
+.progress{text-align:right;font-size:13px;margin-bottom:8px}.option{width:100%;text-align:left;background:#fff;padding:18px;border-radius:14px;margin:7px 0;border:2px solid transparent;font-weight:600}@media (hover:hover) and (pointer:fine){.option:hover{border-color:var(--main)}}
 .timer{width:64px;height:64px;border-radius:50%;margin:0 auto 14px;background:#fff;color:var(--main);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;border:5px solid var(--main)}.timer.urgent{color:var(--red);border-color:var(--red)}
 .speak{display:inline-flex;align-items:center;gap:6px;background:#fff;color:var(--main);border:1px solid #fff;padding:8px 12px;border-radius:999px;margin-top:14px;font-weight:700}
 .resultOverlay{position:fixed;inset:0;background:#0007;display:flex;align-items:flex-start;justify-content:center;padding:0 22px;z-index:30}.resultPopup{position:absolute;top:22%;transform:translateY(-50%);width:min(440px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:22px;padding:28px;text-align:center}
@@ -72,7 +72,7 @@ nav{gap:6px;margin-top:10px}nav button{padding:8px 12px}
   .progress{font-size:11px !important;margin-bottom:4px !important}
 
   /* 팝업 액션을 상단으로 당기고 2열 배치하여 보기 영역과 시각적으로 분리 */
-  .resultPopup{top:50% !important;padding:20px 18px !important}
+  .resultPopup{top:40% !important;padding:20px 18px !important}
   .resultPopup .popupActions{display:grid !important;grid-template-columns:1fr 1fr !important;gap:8px !important;margin:10px 0 12px !important}
   .resultPopup .popupActions .btn{margin-top:0 !important;padding:11px 8px !important;font-size:14px !important}
   .resultPopup .speak{margin-top:0 !important;margin-bottom:2px !important}
@@ -82,7 +82,7 @@ nav{gap:6px;margin-top:10px}nav button{padding:8px 12px}
 </style>
 </head>
 <body>
-<header><h1>P.E. Wordbook</h1><div class="sub">개인 공부용 · v1.1.22 — Mobile UX + Popup Actions</div>
+<header><h1>P.E. Wordbook</h1><div class="sub">개인 공부용 · v1.1.23 — Mobile UX + Popup 40 + Touch Hover Fix</div>
 <nav><button id="navHome" class="active">홈</button><button id="navQuiz">퀴즈</button><button id="navWrong">틀린 단어</button><button id="navChunks">Chunk</button><button id="navRecords">학습 기록</button><button id="navStats">통계</button><button id="navSettings">설정</button></nav></header>
 <main id="app"></main><div id="toast" class="toast hidden"></div>
 <script>
