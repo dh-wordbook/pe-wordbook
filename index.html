@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>P.E. Wordbook v1.1.35</title>
+<title>P.E. Wordbook v1.1.36</title>
 <style>
 :root{--main:#08aec3;--red:#ff5b61;--green:#10a77a;--ink:#222;--muted:#8b8b8b;--bg:#f7f8f9;--line:#eee;--soft:#eefbfc}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;color:var(--ink);background:var(--bg)}
@@ -134,7 +134,8 @@ html, body {
 </style>
 
 
-<style id="quiz-layout-v1-1-35">
+
+<style id="quiz-layout-v1-1-36">
 .appVersion35{
   display:inline-block;
   margin-left:5px;
@@ -302,26 +303,29 @@ html, body {
     flex:0 0 auto!important;
   }
 
+  /* v1.1.36: The options area is now content-first.
+     We use almost all of the 67% region, while cards themselves grow
+     only as much as their content needs. Extra height is distributed
+     between cards instead of forcing a fixed equal height. */
   .quizOptions35{
     display:flex!important;
     align-items:center!important;
     justify-content:center!important;
-    padding:2px 0!important;
+    padding:0!important;
     overflow:hidden!important;
   }
 
-  /* Four choices get content-first sizing. The stack occupies 80% of
-     the option region; it is not forced to consume the entire region. */
   .optionStack35{
     width:100%!important;
-    height:80%!important;
+    height:96%!important;
     min-height:0!important;
     max-height:100%!important;
     margin:auto 0!important;
     display:flex!important;
     flex-direction:column!important;
     justify-content:space-between!important;
-    gap:4px!important;
+    align-items:stretch!important;
+    gap:3px!important;
     overflow:visible!important;
   }
 
@@ -329,11 +333,13 @@ html, body {
     width:100%!important;
     min-height:0!important;
     height:auto!important;
+    max-height:none!important;
     margin:0!important;
-    padding:7px 9px!important;
+    padding:8px 9px!important;
     box-sizing:border-box!important;
     display:flex!important;
     align-items:center!important;
+    justify-content:flex-start!important;
     text-align:left!important;
     white-space:normal!important;
     overflow:visible!important;
@@ -343,23 +349,50 @@ html, body {
     border:2px solid transparent!important;
     border-radius:13px!important;
     background:#fff!important;
-    flex:1 1 0!important;
+    flex:0 0 auto!important;
   }
 
-  /* On touch devices there is no hover state. Only real selection gets
-     a border, preventing the old accidental active/hover outline. */
-  .option35:hover{border-color:transparent!important}
-  .option35:active{transform:none!important;filter:none!important}
+  .option35 .meaningBlock{
+    width:100%!important;
+    min-width:0!important;
+    display:flex!important;
+    flex-direction:column!important;
+    justify-content:center!important;
+  }
+
+  .option35 .posLine{
+    width:100%!important;
+    min-width:0!important;
+    display:flex!important;
+    align-items:center!important;
+    min-height:0!important;
+    box-sizing:border-box!important;
+  }
+
+  .option35 .posLine + .posLine{
+    margin-top:4px!important;
+  }
+
+  .option35 .posLine > span:last-child{
+    min-width:0!important;
+    overflow-wrap:anywhere!important;
+    word-break:keep-all!important;
+  }
+
   .option35 .posTag{
     flex:0 0 auto!important;
     font-size:11px!important;
+    margin-right:7px!important;
   }
+
+  .option35:hover{border-color:transparent!important}
+  .option35:active{transform:none!important;filter:none!important}
 
   .quizFooter35{
     display:flex!important;
     align-items:center!important;
     justify-content:center!important;
-    padding:2px 0!important;
+    padding:1px 0!important;
     overflow:hidden!important;
   }
 
@@ -367,6 +400,7 @@ html, body {
     width:100%!important;
     height:auto!important;
     min-height:0!important;
+    max-height:100%!important;
     margin:0!important;
     padding:7px 10px!important;
     box-sizing:border-box!important;
@@ -378,16 +412,44 @@ html, body {
   }
 }
 
-@media (max-width:600px) and (max-height:850px){
-  .quizViewport35{grid-template-rows:5% 18% 67% 10%!important}
-  .optionStack35{height:80%!important;gap:3px!important}
-  .option35{padding:6px 8px!important;font-size:12.5px!important;line-height:1.14!important}
+/* Slightly tighter typography only on the 12 mini-sized viewport. */
+@media (max-width:390px) and (max-height:850px){
+  .optionStack35{
+    height:96%!important;
+    gap:3px!important;
+  }
+  .option35{
+    padding:7px 8px!important;
+    font-size:12.5px!important;
+    line-height:1.14!important;
+  }
+  .option35 .posLine + .posLine{margin-top:3px!important}
+  .option35 .posTag{font-size:11px!important;margin-right:6px!important}
+}
+</style>
+
+
+
+<style id="quiz-fit-compact-v1-1-36">
+@media (max-width:390px) and (max-height:850px){
+  .optionStack35.compact36 .option35{
+    padding:5px 7px!important;
+    font-size:11.5px!important;
+    line-height:1.1!important;
+  }
+  .optionStack35.compact36 .option35 .posTag{
+    font-size:10px!important;
+    margin-right:5px!important;
+  }
+  .optionStack35.compact36 .option35 .posLine + .posLine{
+    margin-top:2px!important;
+  }
 }
 </style>
 
 </head>
 <body>
-<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.35</span></h1>
+<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.36</span></h1>
 <nav><button id="navHome" class="active">홈</button><button id="navQuiz">퀴즈</button><button id="navWrong">틀린 단어</button><button id="navChunks">Chunk</button><button id="navRecords">학습 기록</button><button id="navStats">통계</button><button id="navSettings">설정</button></nav></header>
 <main id="app"></main><div id="toast" class="toast hidden"></div>
 <script>
@@ -739,6 +801,7 @@ function showQuestion(){
     </div>`;
 
   syncQuizViewport35();
+  fitQuizOptions36();
   startTimer(seconds);
 }
 function startTimer(seconds=getQuizTimerSeconds()){
@@ -1090,6 +1153,30 @@ function syncQuizViewport35(){
 }
 window.addEventListener("resize",()=>{if(document.body.classList.contains("quiz-active35"))syncQuizViewport35()});
 window.addEventListener("orientationchange",()=>setTimeout(syncQuizViewport35,100));
+</script>
+
+
+<script id="quiz-fit-v1-1-36">
+function fitQuizOptions36(){
+  const stack=document.querySelector(".optionStack35");
+  if(!stack)return;
+  const options=[...stack.querySelectorAll(".option35")];
+  if(options.length!==4)return;
+
+  stack.classList.remove("compact36");
+  options.forEach(el=>el.style.removeProperty("font-size"));
+
+  const available=stack.clientHeight;
+  const natural=options.reduce((sum,el)=>sum+el.scrollHeight,0)+
+    Math.max(0,options.length-1)*3;
+
+  if(natural>available){
+    stack.classList.add("compact36");
+  }
+}
+window.addEventListener("resize",()=>{
+  if(document.body.classList.contains("quiz-active35"))setTimeout(fitQuizOptions36,20);
+});
 </script>
 
 </body></html>
