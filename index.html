@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>P.E. Wordbook v1.1.39</title>
+<title>P.E. Wordbook v1.1.44</title>
 <style>
 :root{--main:#08aec3;--red:#ff5b61;--green:#10a77a;--ink:#222;--muted:#8b8b8b;--bg:#f7f8f9;--line:#eee;--soft:#eefbfc}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;color:var(--ink);background:var(--bg)}
@@ -303,7 +303,7 @@ html, body {
     flex:0 0 auto!important;
   }
 
-  /* v1.1.39: The options area is now content-first.
+  /* v1.1.44: The options area is now content-first.
      We use almost all of the 67% region, while cards themselves grow
      only as much as their content needs. Extra height is distributed
      between cards instead of forcing a fixed equal height. */
@@ -669,9 +669,45 @@ body:not(.quiz-active35) main#app{
 }
 </style>
 
+
+<style id="right-align-options-v1-1-44">
+@media (max-width:600px){
+  .option35{
+    align-items:center!important;
+    justify-content:flex-end!important;
+    text-align:right!important;
+    padding-left:9px!important;
+    padding-right:14px!important;
+  }
+  .option35 .meaningBlock{
+    width:100%!important;
+    text-align:right!important;
+    align-items:stretch!important;
+  }
+  .option35 .posLine{
+    justify-content:flex-end!important;
+    text-align:right!important;
+  }
+  .option35 .posLine > span:last-child{
+    text-align:right!important;
+  }
+  .option35 .posTag{
+    margin-left:7px!important;
+    margin-right:0!important;
+    order:2!important;
+  }
+}
+@media (max-width:390px) and (max-height:850px){
+  .option35{
+    padding-left:8px!important;
+    padding-right:13px!important;
+  }
+}
+</style>
+
 </head>
 <body>
-<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.39</span></h1>
+<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.44</span></h1>
 <nav><button id="navHome" class="active">홈</button><button id="navQuiz">퀴즈</button><button id="navWrong">틀린 단어</button><button id="navChunks">Chunk</button><button id="navRecords">학습 기록</button><button id="navStats">통계</button><button id="navSettings">설정</button></nav></header>
 <main id="app"></main><div id="toast" class="toast hidden"></div>
 <script>
