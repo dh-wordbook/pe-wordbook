@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>P.E. Wordbook v1.1.39</title>
+<title>P.E. Wordbook v1.1.40</title>
 <style>
 :root{--main:#08aec3;--red:#ff5b61;--green:#10a77a;--ink:#222;--muted:#8b8b8b;--bg:#f7f8f9;--line:#eee;--soft:#eefbfc}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;color:var(--ink);background:var(--bg)}
@@ -206,7 +206,8 @@ html, body {
     display:grid!important;
     grid-template-rows:5% 18% 67% 10%!important;
     gap:0!important;
-    overflow:hidden!important;
+    overflow-x:visible!important;
+    overflow-y:hidden!important;
   }
 
   .quizProgress35,
@@ -303,7 +304,7 @@ html, body {
     flex:0 0 auto!important;
   }
 
-  /* v1.1.39: The options area is now content-first.
+  /* v1.1.40: The options area is now content-first.
      We use almost all of the 67% region, while cards themselves grow
      only as much as their content needs. Extra height is distributed
      between cards instead of forcing a fixed equal height. */
@@ -614,34 +615,38 @@ body:not(.quiz-active35) main#app{
 </style>
 
 
-<style id="final-layout-fix-v1-1-39">
+<style id="final-layout-fix-v1-1-40">
 @media (max-width:600px){
-  /* 1) 퀴즈 보기 카드를 화면 전체 폭으로 강제 */
+  /* Quiz options: keep the proven left edge, but extend the clickable white cards
+     all the way to the viewport's right edge. The previous 100% rule could only
+     fill the width of a constrained parent, which is why a gray strip remained. */
   body.quiz-active35 .quizOptions35{
-    width:100%!important;
-    min-width:100%!important;
+    width:calc(100vw - 18px)!important;
+    min-width:calc(100vw - 18px)!important;
     max-width:none!important;
-    justify-self:stretch!important;
+    justify-self:start!important;
     align-self:stretch!important;
     display:flex!important;
     align-items:stretch!important;
-    justify-content:stretch!important;
+    justify-content:flex-start!important;
     padding:0!important;
     margin:0!important;
     overflow:hidden!important;
     background:transparent!important;
   }
+
   body.quiz-active35 .quizOptions35 > .optionStack35{
     width:100%!important;
     min-width:100%!important;
     max-width:none!important;
-    flex:1 1 100%!important;
+    flex:1 1 auto!important;
     align-self:stretch!important;
     justify-self:stretch!important;
     margin:0!important;
     padding:0!important;
     box-sizing:border-box!important;
   }
+
   body.quiz-active35 .quizOptions35 .option35{
     width:100%!important;
     min-width:100%!important;
@@ -649,7 +654,7 @@ body:not(.quiz-active35) main#app{
     box-sizing:border-box!important;
   }
 
-  /* 2) 일반 페이지는 실제 문서 높이만큼 스크롤. 상세보기 포함 */
+  /* Keep ordinary pages scrollable, including word-detail pages. */
   html:not(.quiz-mode37),
   body:not(.quiz-active35){
     height:auto!important;
@@ -671,7 +676,7 @@ body:not(.quiz-active35) main#app{
 
 </head>
 <body>
-<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.39</span></h1>
+<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.40</span></h1>
 <nav><button id="navHome" class="active">홈</button><button id="navQuiz">퀴즈</button><button id="navWrong">틀린 단어</button><button id="navChunks">Chunk</button><button id="navRecords">학습 기록</button><button id="navStats">통계</button><button id="navSettings">설정</button></nav></header>
 <main id="app"></main><div id="toast" class="toast hidden"></div>
 <script>
