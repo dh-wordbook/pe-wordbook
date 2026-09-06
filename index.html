@@ -1262,6 +1262,10 @@ function showPopup(type,w,selected){
   </div>`;
   document.body.appendChild(p);
 
+  // 정답/오답 팝업이 뜨는 순간 해당 단어를 자동으로 한 번 읽어준다.
+  // answer()에서 사용자 탭 이벤트가 이어진 동기 호출이므로 iOS Safari/PWA의 음성 재생 제한을 피할 수 있다.
+  if(type === "ok" || type === "bad") speakWord(w.word);
+
   // 5초 후 자동으로 다음 문제.
   p._advanceTimer=setTimeout(()=>{
     if(document.body.contains(p)){
