@@ -841,7 +841,57 @@ function recordSession(status,finalize=true){
 function toast(t){let e=document.getElementById("toast");e.textContent=t;e.classList.remove("hidden");setTimeout(()=>e.classList.add("hidden"),1800)}
 function shuffle(a){let x=[...a];for(let i=x.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[x[i],x[j]]=[x[j],x[i]]}return x}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
-function speakWord(w){if(!("speechSynthesis"in window))return toast("이 브라우저는 음성 발음을 지원하지 않아요.");speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(w));u.lang="en-US";u.rate=.78;speechSynthesis.speak(u)}
+let speechVoices=[];
+let speechVoicesReady=false;
+function loadSpeechVoices(){
+  if(!("speechSynthesis" in window))return [];
+  speechVoices=window.speechSynthesis.getVoices()||[];
+  speechVoicesReady=speechVoices.length>0;
+  return speechVoices;
+}
+if("speechSynthesis" in window){
+  loadSpeechVoices();
+  window.speechSynthesis.addEventListener?.("voiceschanged",loadSpeechVoices);
+}
+function speakWord(w){
+  const text=String(w??"").trim();
+  if(!text)return;
+  if(!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)){
+    return toast("이 브라우저는 음성 발음을 지원하지 않아요.");
+  }
+  const synth=window.speechSynthesis;
+  try{
+    // iOS Safari/PWA에서 음성 엔진이 일시 정지된 상태로 남는 경우를 복구한다.
+    synth.cancel();
+    synth.resume();
+    const voices=loadSpeechVoices();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang="en-US";
+    u.rate=.78;
+    // 영어 음성이 있으면 명시적으로 선택하여 iOS의 음성 선택 실패를 줄인다.
+    const voice=voices.find(v=>/^en-US$/i.test(v.lang))
+      || voices.find(v=>/^en[-_]/i.test(v.lang));
+    if(voice)u.voice=voice;
+    synth.speak(u);
+    // 일부 iOS 버전에서는 첫 speak()가 조용히 대기하는 경우가 있어 한 번 더 resume한다.
+    setTimeout(()=>{try{if(synth.speaking||synth.pending)synth.resume()}catch(e){}},50);
+  }catch(e){
+    toast("발음을 재생할 수 없어요. 잠시 후 다시 눌러주세요.");
+  }
+}
+function bindSpeechButtons(){
+  if(window.__peSpeechBound)return;
+  window.__peSpeechBound=true;
+  document.addEventListener("click",e=>{
+    const btn=e.target.closest?.(".speak, .speak35");
+    if(!btn)return;
+    const word=btn.dataset.word;
+    if(!word)return;
+    e.preventDefault();
+    e.stopPropagation();
+    speakWord(word);
+  },true);
+}
 function parseMeaning(raw,quizMode=false){
   const map={"명":"n","동":"v","형":"adj","부":"adv","전":"prep","접":"conj","대":"pron","감":"interj","관":"art","조":"aux","한":"det","숙":"idiom",
              "n.":"n","v.":"v","adj.":"adj","adv.":"adv","prep.":"prep","conj.":"conj","pron.":"pron","interj.":"interj","art.":"art","aux.":"aux","det.":"det","idiom":"idiom"};
@@ -897,6 +947,13 @@ function renderMeaning(raw,quizMode=false){
   return `<div class="meaningBlock">${arr.map(x=>`<div class="posLine">${x.pos?`<span class="posTag">${esc(x.pos)}.</span>`:""}<span>${esc(x.text)}</span></div>`).join("")}</div>`;
 }
 
+function isWrongWord(w){
+  const s=stats[w.id];
+  // 한 번도 출제되지 않은 단어는 오답이 아니다.
+  // 실제 오답 기록이 있고, 아직 3연속 정답으로 회복되지 않은 단어만 오답으로 본다.
+  return !!s && s.total>0 && s.wrong>0 && s.streak<3;
+}
+
 function recordAnswer(w,ok,timeout=false){
   let s=getStats(w.id);s.total++;if(ok){s.correct++;s.streak=Math.min(3,s.streak+1)}else{s.wrong++;s.streak=0}if(timeout)s.timeout++;s.last=new Date().toISOString();
   if(s.streak>=3)delete wrong[w.id];else wrong[w.id]=true;
@@ -921,7 +978,7 @@ function openDetail(id){
 
   document.getElementById("app").innerHTML=`<div class="card">
     <div class="detailWord">${esc(w.word)}</div>
-    <button class="speak" onclick="speakWord(${JSON.stringify(w.word)})">🔊 발음 듣기</button>
+    <button class="speak" data-word=${JSON.stringify(w.word)}>🔊 발음 듣기</button>
     ${renderMeaning(w.meaning,true)}
     ${w.example?`<div class="example"><b>Example</b><div>${esc(w.example)}</div><div class="translation">${esc(w.translation)}</div></div>`:""}
     <div class="studyBox"><h3>📝 My Study</h3><p><small>원본 단어 데이터는 수정하지 않으며, 아래 내용은 개인 학습 데이터로만 저장됩니다.</small></p>
@@ -969,7 +1026,7 @@ function returnToQuizFromDetail(){
 function renderAnsweredQuestion(){
   const w=quiz.current.w, selected=quiz.current.selected, ok=quiz.current.ok, timeout=quiz.current.timeout;
   document.getElementById("app").innerHTML=`<div class="progress">${quiz.index+1} / ${quiz.pool.length}</div>
-  <div class="quizword"><div class="word">${esc(w.word)}</div><button class="speak" onclick="speakWord(${JSON.stringify(w.word)})">🔊 발음 듣기</button></div>
+  <div class="quizword"><div class="word">${esc(w.word)}</div><button class="speak" data-word=${JSON.stringify(w.word)}>🔊 발음 듣기</button></div>
   <div class="card">
     ${ok
       ? `<div class="correctAnswer"><span>✓ 정답</span><strong>${esc(w.meaning)}</strong></div>`
@@ -1052,7 +1109,7 @@ function openQuizSetup(mode,day=null){
   quiz={pool:shuffle(pool),index:0,correct:0,answers:[],locked:false,timer:null,session:startSession("day",pool.length,pool.length,day),sessionRecorded:false};
   return showQuestion()
 }
-  let title=mode==="wrong"?"오답 퀴즈":"전체 랜덤 퀴즈",pool=mode==="wrong"?words.filter(w=>getStats(w.id).streak<3):words;
+  let title=mode==="wrong"?"오답 퀴즈":"전체 랜덤 퀴즈",pool=mode==="wrong"?words.filter(isWrongWord):words;
   document.getElementById("app").innerHTML=`<div class="card"><h2>${title}</h2><p><small>출제 가능 단어: ${pool.length}개 · 같은 세션에서는 중복 출제하지 않아요.</small></p><h3>문제 수 선택</h3><div class="grid">
   <button class="btn secondary quizCount" onclick="beginSelectedQuiz(20,this)">20문제</button><button class="btn secondary quizCount" onclick="beginSelectedQuiz(50,this)">50문제</button>
   <button class="btn secondary quizCount" onclick="beginSelectedQuiz(100,this)">100문제</button><button class="btn secondary quizCount" onclick="beginSelectedQuiz(500,this)">500문제</button></div>
@@ -1063,7 +1120,7 @@ function beginSelectedQuiz(count, btn=null){
     document.querySelectorAll(".quizCount").forEach(b=>b.classList.remove("selected"));
     btn.classList.add("selected");
   }
-  let pool=selectedMode==="wrong"?words.filter(w=>getStats(w.id).streak<3):words;
+  let pool=selectedMode==="wrong"?words.filter(isWrongWord):words;
   if(pool.length<4)return toast("퀴즈에는 최소 4개의 단어가 필요해요.");
   let n=count==="all"?pool.length:Math.min(Number(count),pool.length);
   quiz={pool:shuffle(pool).slice(0,n),index:0,correct:0,answers:[],locked:false,timer:null,session:startSession(selectedMode,n,pool.length),sessionRecorded:false};showQuestion()
@@ -1094,7 +1151,7 @@ function showQuestion(){
         <div class="quizword35">
           <div id="timer" class="timer35">${seconds}</div>
           <div class="word35">${esc(w.word)}</div>
-          <button class="speak35" onclick="speakWord(${JSON.stringify(w.word)})">🔊 발음 듣기</button>
+          <button class="speak35" data-word=${JSON.stringify(w.word)}>🔊 발음 듣기</button>
         </div>
       </section>
 
@@ -1197,16 +1254,13 @@ function showPopup(type,w,selected){
       <button class="btn secondary" onclick="let p=this.closest('.resultOverlay');if(p._advanceTimer)clearTimeout(p._advanceTimer);openDetail(${w.id});p.remove()">단어 상세 보기</button>
       <button class="btn" onclick="let p=this.closest('.resultOverlay');if(p._advanceTimer)clearTimeout(p._advanceTimer);p.remove();continueQuizAfterPopup()">다음 문제</button>
     </div>
-    <button class="speak" onclick="speakWord(${JSON.stringify(w.word)})">🔊 발음 다시 듣기</button>
+    <button class="speak" data-word=${JSON.stringify(w.word)}>🔊 발음 다시 듣기</button>
     ${type==="bad"?`<div class="myAnswer">내 선택${renderMeaning(selected,true)}</div>`:""}
     ${type==="timeout"?`<div class="timeoutMsg">제한 시간 안에 답을 선택하지 못했어요.</div>`:""}
     <div class="correctAnswer"><span>✓ 정답</span>${renderMeaning(w.meaning,true)}</div>
     <div style="margin-top:12px">${title}</div>
   </div>`;
   document.body.appendChild(p);
-
-  // 팝업 등장 즉시 영어 발음 자동 재생.
-  setTimeout(()=>speakWord(w.word),100);
 
   // 5초 후 자동으로 다음 문제.
   p._advanceTimer=setTimeout(()=>{
@@ -1254,7 +1308,7 @@ function showInterruptedResult(){
       ? wrongAnswers.map(a=>`<div class="wordrow">
           <b class="wrong" style="cursor:pointer" onclick="openDetail(${a.w.id})">${esc(a.w.word)}</b><br>
           <small>❌ 오답${a.timeout?" · ⏰ 시간 초과":""} · 정답: ${esc(a.w.meaning)}${a.timeout?"":" · 선택: "+esc(a.selected)}</small><br>
-          <button class="speak" onclick="speakWord(${JSON.stringify(a.w.word)})">🔊 발음 듣기</button>
+          <button class="speak" data-word=${JSON.stringify(a.w.word)}>🔊 발음 듣기</button>
           <button class="miniBtn" onclick="openDetail(${a.w.id})">단어 상세</button>
         </div>`).join("")
       : "<p>이번 학습에서 틀린 단어가 없어요. 👍</p>"}
@@ -1346,9 +1400,9 @@ function startSessionWrongQuiz(){
 
 function renderWrong(){
   exitQuizLayout37();
-  let bad=words.filter(w=>wrong[w.id]);document.getElementById("app").innerHTML=`<div class="card"><h2>틀린 단어</h2><p>${bad.length}개</p>
+  let bad=words.filter(isWrongWord);document.getElementById("app").innerHTML=`<div class="card"><h2>틀린 단어</h2><p>${bad.length}개</p>
   ${bad.length?bad.map(w=>`<div class="wordrow"><b class="wrong" style="cursor:pointer" onclick="openDetail(${w.id})">${esc(w.word)}</b><br><small>${esc(w.meaning)}</small><br>
-  <button class="speak" onclick="speakWord(${JSON.stringify(w.word)})">🔊 발음 듣기</button></div>`).join(""):"<p>현재 틀린 단어가 없어요.</p>"}
+  <button class="speak" data-word=${JSON.stringify(w.word)}>🔊 발음 듣기</button></div>`).join(""):"<p>현재 틀린 단어가 없어요.</p>"}
   ${bad.length>=4?`<button class="btn danger" onclick="openQuizSetup('wrong')">틀린 단어 다시 풀기</button>`:""}</div>`
 }
 function renderChunks(){
@@ -1467,6 +1521,7 @@ function bindNavigation(){
 }
 function setActive(id){document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));const el=document.getElementById(id);if(el)el.classList.add("active")}
 function bootApp(){
+  bindSpeechButtons();
   bindNavigation();
   setActive("navHome");
   renderHome();
