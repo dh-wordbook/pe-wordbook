@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>P.E. Wordbook v1.1.48</title>
+<title>P.E. Wordbook v1.1.49</title>
 <style>
 :root{--main:#08aec3;--red:#ff5b61;--green:#10a77a;--ink:#222;--muted:#8b8b8b;--bg:#f7f8f9;--line:#eee;--soft:#eefbfc}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;color:var(--ink);background:var(--bg)}
@@ -136,7 +136,7 @@ html, body {
 
 
 <style id="quiz-text-selection-v1-1-48">
-/* v1.1.48 quiz-only text selection lock
+/* v1.1.49 quiz-only text selection lock
    Prevent iOS text selection/callout inside the quiz without affecting
    the rest of the app. Scrolling and button taps remain available. */
 body.quiz-active35 .quizViewport35,
@@ -767,7 +767,7 @@ body:not(.quiz-active35) main#app{
 
 </head>
 <body>
-<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.48</span></h1>
+<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.49</span></h1>
 <nav><button id="navHome" class="active">홈</button><button id="navQuiz">퀴즈</button><button id="navWrong">틀린 단어</button><button id="navChunks">Chunk</button><button id="navRecords">학습 기록</button><button id="navStats">통계</button><button id="navSettings">설정</button></nav></header>
 <main id="app"></main><div id="toast" class="toast hidden"></div>
 <script>
@@ -775,6 +775,7 @@ const WORDS=[{"id":1,"source":"MAIN","day":"01","word":"spectator","entryType":"
 let words=WORDS.map(x=>({...x}));
 let stats=JSON.parse(localStorage.getItem("pe10_stats")||"{}");
 let wrong=JSON.parse(localStorage.getItem("pe10_wrong")||"{}");
+let detailReturnResultScrollY=null;
 let daily=JSON.parse(localStorage.getItem("pe10_daily")||"{}");
 let study=JSON.parse(localStorage.getItem("pe10_study")||"{}");
 let sessions=JSON.parse(localStorage.getItem("pe10_sessions")||"[]");
@@ -977,6 +978,8 @@ function openDetail(id){
   const w=words.find(x=>x.id===Number(id)); if(!w)return;
   const st=getStats(w.id), me=getStudy(w.id);
   const fromQuiz = !!quiz;
+  const fromQuizResult = document.getElementById("app")?.dataset.view === "quiz-result";
+  if(fromQuizResult) detailReturnResultScrollY=window.scrollY || document.documentElement.scrollTop || 0;
   // 퀴즈에서 진입했다는 사실은 타이머의 실행 여부와 무관하게 보존한다.
   // 정답/오답 팝업에서는 이미 타이머가 멈춰 있으므로 기존 코드처럼
   // timer가 있을 때만 pausedForDetail을 설정하면 '퀴즈로 돌아가기'가
@@ -1008,10 +1011,21 @@ function openDetail(id){
     <div class="stat"><div class="num">${st.wrong}</div><div class="label">오답</div></div>
     <div class="stat"><div class="num">${st.timeout}</div><div class="label">시간초과</div></div>
   </div><p><small>마지막 학습: ${st.last?new Date(st.last).toLocaleString("ko-KR"):"없음"} · 연속 정답: ${st.streak}</small></p></div>`;
+  // 단어 상세 화면은 항상 최상단부터 보여준다.
+  requestAnimationFrame(()=>window.scrollTo(0,0));
 }
 
 function returnToQuizFromDetail(){
   if(!quiz) return renderHome();
+
+  if(detailReturnResultScrollY!==null){
+    const y=detailReturnResultScrollY;
+    detailReturnResultScrollY=null;
+    quiz.pausedForDetail=false;
+    showResult();
+    requestAnimationFrame(()=>requestAnimationFrame(()=>window.scrollTo(0,y)));
+    return;
+  }
 
   const wasPaused=!!quiz.pausedForDetail;
   const answered=!!(quiz.locked && quiz.current);
@@ -1391,7 +1405,8 @@ function showResult(){
   document.getElementById("app").innerHTML=`<div class="resultHero"><div>정답률</div><div class="pct">${s}%</div><div>${quiz.correct} / ${t}</div></div>
   <div class="card"><h2>결과</h2>${quiz.answers.map(a=>`<div class="wordrow"><b class="${a.ok?'right':'wrong'}" style="cursor:pointer" onclick="openDetail(${a.w.id})">${esc(a.w.word)}</b><br><small>${a.ok?"⭕ 정답":"❌ 오답"}${a.timeout?" · ⏰ 시간 초과":""} · 정답: ${renderMeaning(a.w.meaning,true)}${a.ok?"":" · 선택: "+renderMeaning(a.selected,true)}</small></div>`).join("")}
   ${quiz.answers.some(a=>!a.ok)?`<button class="btn danger" onclick="startSessionWrongQuiz()">이번 세션 오답 다시 풀기 (${quiz.answers.filter(a=>!a.ok).length})</button>`:""}
-  <button class="btn secondary" onclick="renderHome()">홈으로</button></div>`
+  <button class="btn secondary" onclick="renderHome()">홈으로</button></div>`;
+  document.getElementById("app").dataset.view="quiz-result";
 }
 function startSessionWrongQuiz(){
   if(!quiz)return renderHome();
@@ -1419,7 +1434,9 @@ function renderWrong(){
   let bad=words.filter(isWrongWord);document.getElementById("app").innerHTML=`<div class="card"><h2>틀린 단어</h2><p>${bad.length}개</p>
   ${bad.length?bad.map(w=>`<div class="wordrow"><b class="wrong" style="cursor:pointer" onclick="openDetail(${w.id})">${esc(w.word)}</b><br><small>${esc(w.meaning)}</small><br>
   <button class="speak" data-word=${JSON.stringify(w.word)}>🔊 발음 듣기</button></div>`).join(""):"<p>현재 틀린 단어가 없어요.</p>"}
-  ${bad.length>=4?`<button class="btn danger" onclick="openQuizSetup('wrong')">틀린 단어 다시 풀기</button>`:""}</div>`
+  ${bad.length>=4?`<button class="btn danger" onclick="openQuizSetup('wrong')">틀린 단어 다시 풀기</button>`:""}</div>`;
+  document.getElementById("app").dataset.view="wrong-list";
+  requestAnimationFrame(()=>window.scrollTo(0,0));
 }
 function renderChunks(){
   exitQuizLayout37();
