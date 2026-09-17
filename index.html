@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>P.E. Wordbook v1.1.47</title>
+<title>P.E. Wordbook v1.1.48</title>
 <style>
 :root{--main:#08aec3;--red:#ff5b61;--green:#10a77a;--ink:#222;--muted:#8b8b8b;--bg:#f7f8f9;--line:#eee;--soft:#eefbfc}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;color:var(--ink);background:var(--bg)}
@@ -135,6 +135,18 @@ html, body {
 
 
 
+<style id="quiz-text-selection-v1-1-48">
+/* v1.1.48 quiz-only text selection lock
+   Prevent iOS text selection/callout inside the quiz without affecting
+   the rest of the app. Scrolling and button taps remain available. */
+body.quiz-active35 .quizViewport35,
+body.quiz-active35 .quizViewport35 *{
+  -webkit-user-select:none !important;
+  user-select:none !important;
+  -webkit-touch-callout:none !important;
+  -webkit-user-drag:none !important;
+}
+</style>
 <style id="quiz-layout-v1-1-36">
 .appVersion35{
   display:inline-block;
@@ -755,7 +767,7 @@ body:not(.quiz-active35) main#app{
 
 </head>
 <body>
-<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.47</span></h1>
+<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.48</span></h1>
 <nav><button id="navHome" class="active">홈</button><button id="navQuiz">퀴즈</button><button id="navWrong">틀린 단어</button><button id="navChunks">Chunk</button><button id="navRecords">학습 기록</button><button id="navStats">통계</button><button id="navSettings">설정</button></nav></header>
 <main id="app"></main><div id="toast" class="toast hidden"></div>
 <script>
