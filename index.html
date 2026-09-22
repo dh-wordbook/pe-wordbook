@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>P.E. Wordbook v1.1.50</title>
+<title>P.E. Wordbook v1.1.51</title>
 <style>
 :root{--main:#08aec3;--red:#ff5b61;--green:#10a77a;--ink:#222;--muted:#8b8b8b;--bg:#f7f8f9;--line:#eee;--soft:#eefbfc}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;color:var(--ink);background:var(--bg)}
@@ -20,7 +20,7 @@ nav button{transition:.12s ease;font-weight:700}nav button:active{font-weight:90
 .speak{display:inline-flex;align-items:center;gap:6px;background:#fff;color:var(--main);border:1px solid #fff;padding:8px 12px;border-radius:999px;margin-top:14px;font-weight:700}
 .resultOverlay{position:fixed;inset:0;background:#0007;display:flex;align-items:flex-start;justify-content:center;padding:0 22px;z-index:30}.resultPopup{position:absolute;top:22%;transform:translateY(-50%);width:min(440px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:22px;padding:28px;text-align:center}
 .resultPopup.ok{border-top:8px solid var(--green)}.resultPopup.bad{border-top:8px solid var(--red)}.resultPopup.timeout{border-top:8px solid #f0a000}
-.popupWord{font-size:22px;font-weight:800}.popupCountdown{margin:12px 0 2px;color:var(--muted);font-size:14px;font-weight:700}.popupCountdown strong{color:var(--main);font-size:20px;display:inline-block;min-width:1.4em}.correctAnswer{background:#e9fff0;border:3px solid var(--green);border-radius:15px;padding:18px 14px;margin:12px 0}.correctAnswer strong{display:block;font-size:28px;color:#087b4e}
+.popupWord{font-size:22px;font-weight:800}.popupCountdown{display:inline-flex;align-items:center;justify-content:center;gap:5px;margin:12px auto 8px;padding:7px 14px;border-radius:999px;background:var(--soft);border:2px solid #b8eef3;color:#087d8b;font-size:14px;font-weight:800}.popupCountdown strong{color:var(--main);font-size:21px;display:inline-block;min-width:1.4em}.correctAnswer{background:#e9fff0;border:3px solid var(--green);border-radius:15px;padding:18px 14px;margin:12px 0}.correctAnswer strong{display:block;font-size:28px;color:#087b4e}
 .myAnswer{background:#fff0f1;border-radius:12px;padding:12px;margin:8px 0;color:#c63d44}.timeoutMsg{background:#fff8e7;border-radius:12px;padding:12px;margin:8px 0;color:#a56600;font-weight:700}
 .resultHero{background:var(--red);color:#fff;border-radius:16px;padding:28px}.resultHero .pct{font-size:64px;font-weight:900}
 .wordrow{padding:14px 0;border-bottom:1px solid var(--line)}.wordrow b{font-size:20px}.wrong{color:var(--red)}.right{color:var(--green)}
@@ -76,6 +76,8 @@ nav{gap:6px;margin-top:10px}nav button{padding:8px 12px}
   .resultPopup .popupActions{display:grid !important;grid-template-columns:1fr 1fr !important;gap:8px !important;margin:10px 0 12px !important}
   .resultPopup .popupActions .btn{margin-top:0 !important;padding:11px 8px !important;font-size:14px !important}
   .resultPopup .speak{margin-top:0 !important;margin-bottom:2px !important}
+  .resultPopup .popupCountdown{margin:10px auto 8px !important;padding:7px 13px !important;font-size:13px !important}
+  .resultPopup .popupCountdown strong{font-size:20px !important}
 }
 .popupActions{display:flex;gap:10px;justify-content:center;margin:10px 0 12px}
 .popupActions .btn{flex:1;margin-top:0}
@@ -1292,9 +1294,11 @@ function showPopup(type,w,selected){
   // answer()에서 사용자 탭 이벤트가 이어진 동기 호출이므로 iOS Safari/PWA의 음성 재생 제한을 피할 수 있다.
   if(type === "ok" || type === "bad") speakWord(w.word);
 
-  // 팝업의 자동 전환 시간을 표시하고 1초마다 남은 시간을 갱신한다.
+  // 팝업 내부에 자동 전환 카운터를 표시하고 1초마다 남은 시간을 갱신한다.
+  // overlay가 아니라 실제 resultPopup 안에 넣어 iPhone에서도 팝업과 함께 안정적으로 보이게 한다.
   const popupSeconds=Math.max(1,Number(localStorage.getItem("pe10_popup_timer")||5));
-  p.insertAdjacentHTML("beforeend",`<div class="popupCountdown">다음 문제까지 <strong id="popupCountdownValue">${popupSeconds}</strong>초</div>`);
+  const popupBox=p.querySelector(".resultPopup");
+  popupBox.insertAdjacentHTML("beforeend",`<div class="popupCountdown">다음 문제까지 <strong id="popupCountdownValue">${popupSeconds}</strong>초</div>`);
   let popupRemaining=popupSeconds;
   p._countdownTimer=setInterval(()=>{
     popupRemaining--;
