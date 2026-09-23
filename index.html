@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>P.E. Wordbook v1.1.51</title>
+<title>P.E. Wordbook v1.1.52</title>
 <style>
 :root{--main:#08aec3;--red:#ff5b61;--green:#10a77a;--ink:#222;--muted:#8b8b8b;--bg:#f7f8f9;--line:#eee;--soft:#eefbfc}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;color:var(--ink);background:var(--bg)}
@@ -769,7 +769,7 @@ body:not(.quiz-active35) main#app{
 
 </head>
 <body>
-<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.50</span></h1>
+<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.52</span></h1>
 <nav><button id="navHome" class="active">홈</button><button id="navQuiz">퀴즈</button><button id="navWrong">틀린 단어</button><button id="navChunks">Chunk</button><button id="navRecords">학습 기록</button><button id="navStats">통계</button><button id="navSettings">설정</button></nav></header>
 <main id="app"></main><div id="toast" class="toast hidden"></div>
 <script>
@@ -1116,8 +1116,19 @@ function toggleWordbook(){
 function makeQuestion(pool,index=0){
   const w=pool[index];
   if(!w)return null;
+  const isChunk=w.entryType==="MULTIWORD";
   const used=new Set([w.meaning]);
-  const cands=shuffle(pool.filter(x=>x.id!==w.id&&!used.has(x.meaning)));
+  const sameType=x=>isChunk ? x.entryType==="MULTIWORD" : x.entryType!=="MULTIWORD";
+
+  // Chunk 문제는 Chunk끼리, 일반 단어 문제는 일반 단어끼리 보기를 구성한다.
+  // 현재 세션 pool에 같은 유형의 후보가 부족하면 전체 WORDS에서 같은 유형을 보충한다.
+  let cands=shuffle(pool.filter(x=>x.id!==w.id&&sameType(x)&&!used.has(x.meaning)));
+  if(cands.length<3){
+    const extra=shuffle(words.filter(x=>x.id!==w.id&&sameType(x)&&!used.has(x.meaning)));
+    const seen=new Set(cands.map(x=>x.id));
+    cands=cands.concat(extra.filter(x=>!seen.has(x.id)));
+  }
+
   const ds=[];
   for(const x of cands){
     if(!used.has(x.meaning)){
