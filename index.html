@@ -10,6 +10,9 @@ nav{display:flex;gap:8px;margin-top:14px;overflow:auto}nav button{background:#ff
 main{max-width:760px;margin:auto;padding:18px}.card{background:#fff;border-radius:16px;padding:18px;margin-bottom:14px;box-shadow:0 2px 12px #00000008}
 .btn{width:100%;padding:15px;border-radius:12px;background:var(--main);color:#fff;font-weight:700;margin-top:10px;transition:.12s ease;box-shadow:0 1px 2px #00000008}.btn.secondary{background:#fff;color:var(--main);border:1px solid var(--main)}.btn.danger{background:var(--red)}
 .btn:active,.btn.selected{font-weight:900;transform:translateY(1px);filter:brightness(.88);box-shadow:inset 0 0 0 2px #00000014,0 1px 1px #00000010}
+.quizSource{min-height:72px}
+.quizSource.selected{background:var(--main)!important;color:#fff!important;border-color:var(--main)!important}
+.quizSource small{display:block;margin-top:4px;font-size:.78em;opacity:.8}
 .btn.secondary:active,.btn.secondary.selected{background:var(--main);color:#fff;border-color:var(--main)}
 nav button{transition:.12s ease;font-weight:700}nav button:active{font-weight:900;transform:translateY(1px);filter:brightness(.88)}nav button.active{font-weight:900;box-shadow:inset 0 0 0 2px #00000012}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.stat{text-align:center;padding:18px;background:#fff;border-radius:14px}.num{font-size:30px;font-weight:800}.label{color:var(--muted);font-size:13px}
@@ -769,7 +772,7 @@ body:not(.quiz-active35) main#app{
 
 </head>
 <body>
-<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.52</span></h1>
+<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.53</span></h1>
 <nav><button id="navHome" class="active">홈</button><button id="navQuiz">퀴즈</button><button id="navWrong">틀린 단어</button><button id="navChunks">Chunk</button><button id="navRecords">학습 기록</button><button id="navStats">통계</button><button id="navSettings">설정</button></nav></header>
 <main id="app"></main><div id="toast" class="toast hidden"></div>
 <script>
@@ -781,7 +784,7 @@ let detailReturnResultScrollY=null;
 let daily=JSON.parse(localStorage.getItem("pe10_daily")||"{}");
 let study=JSON.parse(localStorage.getItem("pe10_study")||"{}");
 let sessions=JSON.parse(localStorage.getItem("pe10_sessions")||"[]");
-let quiz=null,selectedMode=null;
+let quiz=null,selectedMode=null,selectedSource="ALL";
 
 function todayKey(){return new Date().toLocaleDateString("sv-SE")}
 function getStats(id){if(!stats[id])stats[id]={total:0,correct:0,wrong:0,timeout:0,streak:0,last:null};return stats[id]}
@@ -805,6 +808,7 @@ function startSession(mode,count,poolLength,day=null,meta={}){
     day:day,
     requestedCount:count==="all"?poolLength:Number(count),
     poolLength:poolLength,
+    source:meta.source||"ALL",
     answers:[],
     status:"active",
     parentSessionId:meta.parentSessionId||null
@@ -1140,29 +1144,59 @@ function makeQuestion(pool,index=0){
   if(ds.length<3)return null;
   return{w,options:shuffle([w.meaning,...ds])};
 }
-function openQuizSetup(mode,day=null){
-  selectedMode=mode;
-  if(mode==="day"){
-  let pool=words.filter(w=>w.day===day);
-  if(pool.length<4)return toast("퀴즈에는 최소 4개의 단어가 필요해요.");
-  quiz={pool:shuffle(pool),index:0,correct:0,answers:[],locked:false,timer:null,session:startSession("day",pool.length,pool.length,day),sessionRecorded:false};
-  return showQuestion()
+function getQuizSourcePool(source=selectedSource){
+  if(source==="MAIN") return words.filter(w=>w.source==="MAIN");
+  if(source==="SUP") return words.filter(w=>w.source==="SUP");
+  return words;
 }
-  let title=mode==="wrong"?"오답 퀴즈":"전체 랜덤 퀴즈",pool=mode==="wrong"?words.filter(isWrongWord):words;
-  document.getElementById("app").innerHTML=`<div class="card"><h2>${title}</h2><p><small>출제 가능 단어: ${pool.length}개 · 같은 세션에서는 중복 출제하지 않아요.</small></p><h3>문제 수 선택</h3><div class="grid">
+function selectQuizSource(source){
+  selectedSource=source;
+  renderQuizSetup();
+}
+function renderQuizSetup(){
+  const sourcePool=getQuizSourcePool();
+  const sourceLabel=selectedSource==="MAIN"?"MAIN":selectedSource==="SUP"?"SUP":"전체";
+  document.getElementById("app").innerHTML=`<div class="card"><h2>전체 랜덤 퀴즈</h2>
+  <p><small>퀴즈 범위를 선택하세요. MAIN과 SUP을 각각 독립적으로 테스트할 수 있어요.</small></p>
+  <div class="grid">
+    <button class="btn secondary quizSource ${selectedSource==="MAIN"?"selected":""}" onclick="selectQuizSource('MAIN')">MAIN<small>2,500개</small></button>
+    <button class="btn secondary quizSource ${selectedSource==="SUP"?"selected":""}" onclick="selectQuizSource('SUP')">SUP<small>1,449개</small></button>
+    <button class="btn secondary quizSource ${selectedSource==="ALL"?"selected":""}" onclick="selectQuizSource('ALL')">전체<small>3,949개</small></button>
+  </div>
+  <p style="margin-top:14px"><small>현재 선택: <b>${sourceLabel}</b> · 출제 가능 단어 ${sourcePool.length}개 · 같은 세션에서는 중복 출제하지 않아요.</small></p>
+  <h3>문제 수 선택</h3><div class="grid">
   <button class="btn secondary quizCount" onclick="beginSelectedQuiz(20,this)">20문제</button><button class="btn secondary quizCount" onclick="beginSelectedQuiz(50,this)">50문제</button>
   <button class="btn secondary quizCount" onclick="beginSelectedQuiz(100,this)">100문제</button><button class="btn secondary quizCount" onclick="beginSelectedQuiz(500,this)">500문제</button></div>
-  <button class="btn secondary" onclick="renderHome()">취소</button></div>`
+  <button class="btn secondary" onclick="renderHome()">취소</button></div>`;
+}
+function openQuizSetup(mode,day=null){
+  selectedMode=mode;
+  selectedSource="ALL";
+  if(mode==="day"){
+    let pool=words.filter(w=>w.day===day);
+    if(pool.length<4)return toast("퀴즈에는 최소 4개의 단어가 필요해요.");
+    quiz={pool:shuffle(pool),index:0,correct:0,answers:[],locked:false,timer:null,session:startSession("day",pool.length,pool.length,day,{source:"MAIN"}),sessionRecorded:false};
+    return showQuestion()
+  }
+  if(mode==="wrong"){
+    const pool=words.filter(isWrongWord);
+    document.getElementById("app").innerHTML=`<div class="card"><h2>오답 퀴즈</h2><p><small>출제 가능 단어: ${pool.length}개 · 같은 세션에서는 중복 출제하지 않아요.</small></p><h3>문제 수 선택</h3><div class="grid">
+    <button class="btn secondary quizCount" onclick="beginSelectedQuiz(20,this)">20문제</button><button class="btn secondary quizCount" onclick="beginSelectedQuiz(50,this)">50문제</button>
+    <button class="btn secondary quizCount" onclick="beginSelectedQuiz(100,this)">100문제</button><button class="btn secondary quizCount" onclick="beginSelectedQuiz(500,this)">500문제</button></div>
+    <button class="btn secondary" onclick="renderHome()">취소</button></div>`;
+    return;
+  }
+  renderQuizSetup();
 }
 function beginSelectedQuiz(count, btn=null){
   if(btn){
     document.querySelectorAll(".quizCount").forEach(b=>b.classList.remove("selected"));
     btn.classList.add("selected");
   }
-  let pool=selectedMode==="wrong"?words.filter(isWrongWord):words;
+  let pool=selectedMode==="wrong"?words.filter(isWrongWord):getQuizSourcePool(selectedSource);
   if(pool.length<4)return toast("퀴즈에는 최소 4개의 단어가 필요해요.");
   let n=count==="all"?pool.length:Math.min(Number(count),pool.length);
-  quiz={pool:shuffle(pool).slice(0,n),index:0,correct:0,answers:[],locked:false,timer:null,session:startSession(selectedMode,n,pool.length),sessionRecorded:false};showQuestion()
+  quiz={pool:shuffle(pool).slice(0,n),index:0,correct:0,answers:[],locked:false,timer:null,session:startSession(selectedMode,n,pool.length,null,{source:selectedMode==="wrong"?"ALL":selectedSource}),sessionRecorded:false};showQuestion()
 }
 function getQuizTimerSeconds(){
   const n=Number(localStorage.getItem("pe10_timer"));
