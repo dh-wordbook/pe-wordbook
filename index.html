@@ -82,6 +82,21 @@ nav{gap:6px;margin-top:10px}nav button{padding:8px 12px}
   .resultPopup .popupCountdown{margin:10px auto 8px !important;padding:7px 13px !important;font-size:13px !important}
   .resultPopup .popupCountdown strong{font-size:20px !important}
 }
+
+/* v1.1.54 wordbook search */
+.wordSearchBox{margin:12px 0 16px;padding:12px;border:1px solid #dceff2;border-radius:16px;background:#f8fcfd}
+.wordSearchRow{display:flex;gap:8px;align-items:center}
+.wordSearchInput{flex:1;min-width:0;height:44px;padding:0 14px;border:2px solid #11abc0;border-radius:12px;font-size:16px;box-sizing:border-box;background:#fff;color:#222}
+.wordSearchFilter{height:44px;padding:0 10px;border:2px solid #11abc0;border-radius:12px;background:#fff;color:#087f90;font-size:14px}
+.wordSearchMeta{margin:9px 2px 0;color:#666;font-size:13px}
+.wordSearchResults{margin-top:10px}
+.wordSearchResult{padding:13px 10px;border-top:1px solid #e6eeee;cursor:pointer}
+.wordSearchResult:first-child{border-top:0}
+.wordSearchResult b{color:#0786a0;font-size:19px}
+.wordSearchResult small{display:block;margin-top:5px;color:#333;line-height:1.45}
+.wordSearchResult .searchTag{display:inline-block;margin-right:6px;padding:2px 7px;border-radius:999px;background:#e9f8fa;color:#087f90;font-size:11px;font-weight:700}
+.wordSearchEmpty{padding:16px 4px;color:#777;text-align:center}
+@media (max-width:600px){.wordSearchRow{align-items:stretch}.wordSearchFilter{width:92px;flex:none}.wordSearchInput{font-size:16px}}
 .popupActions{display:flex;gap:10px;justify-content:center;margin:10px 0 12px}
 .popupActions .btn{flex:1;margin-top:0}
 </style>
@@ -772,7 +787,7 @@ body:not(.quiz-active35) main#app{
 
 </head>
 <body>
-<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.53</span></h1>
+<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.54</span></h1>
 <nav><button id="navHome" class="active">홈</button><button id="navQuiz">퀴즈</button><button id="navWrong">틀린 단어</button><button id="navChunks">Chunk</button><button id="navRecords">학습 기록</button><button id="navStats">통계</button><button id="navSettings">설정</button></nav></header>
 <main id="app"></main><div id="toast" class="toast hidden"></div>
 <script>
@@ -1102,6 +1117,19 @@ function renderHome(){
       <span id="wordbookArrow" style="font-size:22px">▸</span>
     </div>
     <div id="wordbookBody" style="display:none;margin-top:14px">
+      <div class="wordSearchBox">
+        <div class="wordSearchRow">
+          <input id="wordSearchInput" class="wordSearchInput" type="search" autocomplete="off" placeholder="🔍 단어 또는 뜻 검색" oninput="searchWordbook()">
+          <select id="wordSearchFilter" class="wordSearchFilter" onchange="searchWordbook()" aria-label="검색 범위">
+            <option value="ALL">전체</option>
+            <option value="MAIN">MAIN</option>
+            <option value="SUP">SUP</option>
+            <option value="CHUNK">Chunk</option>
+          </select>
+        </div>
+        <div id="wordSearchMeta" class="wordSearchMeta">영어 단어, Chunk, 한국어 뜻을 검색할 수 있어요.</div>
+        <div id="wordSearchResults" class="wordSearchResults"></div>
+      </div>
       <div class="subsectionTitle">MAIN · DAY 01~50</div>
       ${days.map(d=>`<div class="day"><div><b>DAY ${d}</b><br><small>${words.filter(w=>w.source==="MAIN"&&w.day===d).length} 단어</small></div><button class="btn" style="width:auto;margin:0;padding:10px 14px" onclick="openQuizSetup('day','${d}')">퀴즈</button></div>`).join("")}
       <div class="subsectionTitle" style="margin-top:18px">SUPPLEMENT</div>
@@ -1109,6 +1137,38 @@ function renderHome(){
     </div>
   </div>`;
 }
+function searchWordbook(){
+  const input=document.getElementById("wordSearchInput");
+  const results=document.getElementById("wordSearchResults");
+  const meta=document.getElementById("wordSearchMeta");
+  const filter=document.getElementById("wordSearchFilter");
+  if(!input||!results||!meta)return;
+  const q=input.value.trim().toLowerCase();
+  const scope=filter?filter.value:"ALL";
+  if(!q){
+    meta.textContent="영어 단어, Chunk, 한국어 뜻을 검색할 수 있어요.";
+    results.innerHTML="";
+    return;
+  }
+  let pool=scope==="MAIN"?words.filter(w=>w.source==="MAIN"):scope==="SUP"?words.filter(w=>w.source==="SUP"):words;
+  if(scope==="CHUNK")pool=pool.filter(w=>w.entryType==="MULTIWORD");
+  const matches=pool.filter(w=>{
+    const word=String(w.word||"").toLowerCase();
+    const meaning=String(w.meaning||"").toLowerCase();
+    return word.includes(q)||meaning.includes(q);
+  });
+  meta.textContent=`${matches.length}개 검색됨${matches.length>100?" · 처음 100개만 표시":""}`;
+  if(!matches.length){
+    results.innerHTML='<div class="wordSearchEmpty">검색 결과가 없어요.</div>';
+    return;
+  }
+  results.innerHTML=matches.slice(0,100).map(w=>{
+    const tag=w.source==="MAIN"?`MAIN${w.day?" · DAY "+esc(w.day):""}`:w.sup?`SUP · ${esc(w.sup)}`:"SUP";
+    const type=w.entryType==="MULTIWORD"?'<span class="searchTag">Chunk</span>':`<span class="searchTag">${tag}</span>`;
+    return `<div class="wordSearchResult" onclick="openDetail(${w.id})">${type}<b>${esc(w.word)}</b><small>${esc(w.meaning)}</small></div>`;
+  }).join("");
+}
+
 function toggleWordbook(){
   const body=document.getElementById("wordbookBody"),arrow=document.getElementById("wordbookArrow");
   if(!body)return;
