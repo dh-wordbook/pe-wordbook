@@ -83,7 +83,7 @@ nav{gap:6px;margin-top:10px}nav button{padding:8px 12px}
   .resultPopup .popupCountdown strong{font-size:20px !important}
 }
 
-/* v1.1.55 wordbook search; v1.1.56 popup text fit */
+/* v1.1.54 wordbook search */
 .wordSearchBox{margin:12px 0 16px;padding:12px;border:1px solid #dceff2;border-radius:16px;background:#f8fcfd}
 .wordSearchRow{display:flex;gap:8px;align-items:center}
 .wordSearchInput{flex:1;min-width:0;height:44px;padding:0 14px;border:2px solid #11abc0;border-radius:12px;font-size:16px;box-sizing:border-box;background:#fff;color:#222}
@@ -785,18 +785,9 @@ body:not(.quiz-active35) main#app{
 }
 </style>
 
-
-<style id="popup-long-word-fix-v1-1-57">
-/* Scoped to the answer popup: allow long English terms and meanings to wrap on small screens. */
-.resultPopup { box-sizing:border-box !important; width:min(440px, calc(100vw - 24px)) !important; max-width:calc(100vw - 24px) !important; }
-.resultPopup .popupWord { display:block; width:100%; max-width:100%; box-sizing:border-box; white-space:normal !important; overflow-wrap:anywhere; word-break:normal; line-height:1.25; }
-.resultPopup .correctAnswer, .resultPopup .myAnswer { box-sizing:border-box; width:100%; max-width:100%; white-space:normal; overflow-wrap:anywhere; word-break:normal; }
-.resultPopup .correctAnswer > *, .resultPopup .myAnswer > * { max-width:100%; white-space:normal; overflow-wrap:anywhere; word-break:normal; }
-</style>
-
 </head>
 <body>
-<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.57</span></h1>
+<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.54</span></h1>
 <nav><button id="navHome" class="active">홈</button><button id="navQuiz">퀴즈</button><button id="navWrong">틀린 단어</button><button id="navChunks">Chunk</button><button id="navRecords">학습 기록</button><button id="navStats">통계</button><button id="navSettings">설정</button></nav></header>
 <main id="app"></main><div id="toast" class="toast hidden"></div>
 <script>
@@ -896,7 +887,7 @@ if("speechSynthesis" in window){
   loadSpeechVoices();
   window.speechSynthesis.addEventListener?.("voiceschanged",loadSpeechVoices);
 }
-function speakWord(w, autoFirstPlayback=false){
+function speakWord(w){
   const text=String(w??"").trim();
   if(!text)return;
   if(!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)){
@@ -904,40 +895,20 @@ function speakWord(w, autoFirstPlayback=false){
   }
   const synth=window.speechSynthesis;
   try{
-    // Preserve the established playback path for manual replay and all other screens.
-    if(!autoFirstPlayback){
-      synth.cancel();
-      synth.resume();
-      const voices=loadSpeechVoices();
-      const u=new SpeechSynthesisUtterance(text);
-      u.lang="en-US";
-      u.rate=.78;
-      const voice=voices.find(v=>/^en-US$/i.test(v.lang))
-        || voices.find(v=>/^en[-_]/i.test(v.lang));
-      if(voice)u.voice=voice;
-      synth.speak(u);
-      setTimeout(()=>{try{if(synth.speaking||synth.pending)synth.resume()}catch(e){}},50);
-      return;
-    }
-
-    // Only the first automatic pronunciation from the answer popup uses this path.
+    // iOS Safari/PWA에서 음성 엔진이 일시 정지된 상태로 남는 경우를 복구한다.
     synth.cancel();
+    synth.resume();
     const voices=loadSpeechVoices();
     const u=new SpeechSynthesisUtterance(text);
     u.lang="en-US";
     u.rate=.78;
+    // 영어 음성이 있으면 명시적으로 선택하여 iOS의 음성 선택 실패를 줄인다.
     const voice=voices.find(v=>/^en-US$/i.test(v.lang))
       || voices.find(v=>/^en[-_]/i.test(v.lang));
     if(voice)u.voice=voice;
-    u.onerror=()=>{};
-    setTimeout(()=>{
-      try{
-        synth.resume();
-        synth.speak(u);
-      }catch(e){
-        toast("발음을 재생할 수 없어요. 잠시 후 다시 눌러주세요.");
-      }
-    },120);
+    synth.speak(u);
+    // 일부 iOS 버전에서는 첫 speak()가 조용히 대기하는 경우가 있어 한 번 더 resume한다.
+    setTimeout(()=>{try{if(synth.speaking||synth.pending)synth.resume()}catch(e){}},50);
   }catch(e){
     toast("발음을 재생할 수 없어요. 잠시 후 다시 눌러주세요.");
   }
@@ -1426,7 +1397,7 @@ function showPopup(type,w,selected){
 
   // 정답/오답 팝업이 뜨는 순간 해당 단어를 자동으로 한 번 읽어준다.
   // answer()에서 사용자 탭 이벤트가 이어진 동기 호출이므로 iOS Safari/PWA의 음성 재생 제한을 피할 수 있다.
-  if(type === "ok" || type === "bad") speakWord(w.word, true);
+  if(type === "ok" || type === "bad") speakWord(w.word);
 
   // 팝업 내부에 자동 전환 카운터를 표시하고 1초마다 남은 시간을 갱신한다.
   // overlay가 아니라 실제 resultPopup 안에 넣어 iPhone에서도 팝업과 함께 안정적으로 보이게 한다.
@@ -1666,117 +1637,6 @@ function setTimer(s,btn=null){
   if(btn)btn.classList.add("selected");
   toast(`제한시간 ${s}초로 설정했어요.`);
 }
-function buildBackupData(){
-  const wordbookMeta={
-    total:WORDS.length,
-    main:WORDS.filter(w=>w.source==="MAIN").length,
-    sup:WORDS.filter(w=>w.source==="SUP").length,
-    chunks:WORDS.filter(w=>w.entryType==="MULTIWORD").length,
-    maxId:WORDS.reduce((m,w)=>Math.max(m,Number(w.id)||0),0)
-  };
-  return {
-    backupType:"PE_WORDBOOK_LEARNING_BACKUP",
-    formatVersion:1,
-    appVersion:"1.1.55",
-    exportedAt:new Date().toISOString(),
-    wordbookMeta,
-    learning:{
-      stats,
-      wrong,
-      daily,
-      study,
-      sessions
-    },
-    settings:{
-      timer:localStorage.getItem("pe10_timer"),
-      popupTimer:localStorage.getItem("pe10_popup_timer")
-    }
-  };
-}
-
-async function backupLearningData(){
-  try{
-    const payload=buildBackupData();
-    const json=JSON.stringify(payload,null,2);
-    const stamp=new Date().toISOString().replace(/[:.]/g,"-");
-    const filename=`PE_Wordbook_Backup_${stamp}.json`;
-    const file=new File([json],filename,{type:"application/json"});
-
-    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({title:"P.E. Wordbook 학습 데이터 백업",text:"P.E. Wordbook 학습 데이터를 백업합니다.",files:[file]});
-      toast("백업 파일을 공유/저장할 수 있어요.");
-      return;
-    }
-
-    const url=URL.createObjectURL(file);
-    const a=document.createElement("a");
-    a.href=url;
-    a.download=filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),1000);
-    toast("백업 파일을 만들었어요.");
-  }catch(e){
-    if(e && e.name==="AbortError") return;
-    console.error(e);
-    toast("백업 파일을 만들지 못했어요.");
-  }
-}
-
-function isPlainObject(v){return v!==null && typeof v==="object" && !Array.isArray(v)}
-function validateBackupPayload(data){
-  if(!isPlainObject(data)) throw new Error("백업 형식이 올바르지 않습니다.");
-  if(data.backupType!=="PE_WORDBOOK_LEARNING_BACKUP") throw new Error("P.E. Wordbook 백업 파일이 아닙니다.");
-  if(Number(data.formatVersion)!==1) throw new Error("지원하지 않는 백업 형식입니다.");
-  if(!isPlainObject(data.learning)) throw new Error("학습 데이터가 없습니다.");
-  if(!isPlainObject(data.learning.stats) || !isPlainObject(data.learning.wrong) || !isPlainObject(data.learning.daily) || !isPlainObject(data.learning.study) || !Array.isArray(data.learning.sessions)) throw new Error("학습 데이터 구조가 손상되었습니다.");
-  if(data.settings!=null && !isPlainObject(data.settings)) throw new Error("설정 데이터 구조가 손상되었습니다.");
-}
-
-async function restoreLearningData(file){
-  if(!file) return;
-  try{
-    const text=await file.text();
-    const data=JSON.parse(text);
-    validateBackupPayload(data);
-
-    const sourceMeta=data.wordbookMeta||{};
-    const currentMeta={
-      total:WORDS.length,
-      main:WORDS.filter(w=>w.source==="MAIN").length,
-      sup:WORDS.filter(w=>w.source==="SUP").length,
-      chunks:WORDS.filter(w=>w.entryType==="MULTIWORD").length,
-      maxId:WORDS.reduce((m,w)=>Math.max(m,Number(w.id)||0),0)
-    };
-    const metaMatches=sourceMeta.total===currentMeta.total && sourceMeta.main===currentMeta.main && sourceMeta.sup===currentMeta.sup && sourceMeta.chunks===currentMeta.chunks && sourceMeta.maxId===currentMeta.maxId;
-
-    const sessionCount=data.learning.sessions.length;
-    const wrongCount=Object.keys(data.learning.wrong).length;
-    const studyCount=Object.keys(data.learning.study).length;
-    const date=data.exportedAt?new Date(data.exportedAt).toLocaleString():"날짜 정보 없음";
-    const warning=metaMatches?"":"\n\n⚠️ 백업 당시 단어장과 현재 단어장 구성이 다릅니다. 학습 기록은 그대로 복원하되, 일부 항목이 현재 단어장과 맞지 않을 수 있습니다.";
-    if(!confirm(`이 백업 데이터를 현재 학습 기록에 덮어쓸까요?\n\n백업 날짜: ${date}\n오답 기록: ${wrongCount}개\nMy Study: ${studyCount}개\n퀴즈 세션: ${sessionCount}개${warning}`)) return;
-
-    stats=data.learning.stats;
-    wrong=data.learning.wrong;
-    daily=data.learning.daily;
-    study=data.learning.study;
-    sessions=data.learning.sessions;
-
-    if(data.settings){
-      if(data.settings.timer!=null) localStorage.setItem("pe10_timer",String(data.settings.timer));
-      if(data.settings.popupTimer!=null) localStorage.setItem("pe10_popup_timer",String(data.settings.popupTimer));
-    }
-    save();
-    renderSettings();
-    toast("학습 데이터를 복원했어요.");
-  }catch(e){
-    console.error(e);
-    alert(e && e.message ? e.message : "백업 파일을 읽지 못했습니다.");
-  }
-}
-
 function renderSettings(){
   exitQuizLayout37();
   const qt=getQuizTimerSeconds();
@@ -1795,11 +1655,6 @@ function renderSettings(){
   </div>
   <p><small>팝업 등장 즉시 발음이 재생되고, 설정한 시간이 지나면 다음 문제로 이동합니다 · 현재 <b>${pt}초</b></small></p>
 
-  <h3>데이터 관리</h3>
-  <p><small>학습 기록과 My Study 데이터를 파일로 백업해 다른 기기에서도 복원할 수 있습니다. 백업 파일은 직접 안전한 곳에 보관하세요.</small></p>
-  <button class="btn secondary" onclick="backupLearningData()">📦 학습 데이터 백업</button>
-  <input id="restoreDataInput" type="file" accept="application/json,.json" style="display:none" onchange="restoreLearningData(this.files&&this.files[0])">
-  <button class="btn secondary" onclick="document.getElementById('restoreDataInput').click()">♻️ 학습 데이터 복원</button>
   <button class="btn secondary" onclick="speakWord('spectator')">🔊 발음 테스트</button>
   <button class="btn danger" onclick="if(confirm('학습 기록과 My Study 데이터를 모두 초기화할까요?')){stats={};wrong={};daily={};study={};sessions=[];save();toast('학습 기록을 초기화했어요.')}">학습 기록 초기화</button>
   </div>`
