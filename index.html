@@ -83,7 +83,7 @@ nav{gap:6px;margin-top:10px}nav button{padding:8px 12px}
   .resultPopup .popupCountdown strong{font-size:20px !important}
 }
 
-/* v1.1.55 wordbook search */
+/* v1.1.55 wordbook search; v1.1.56 popup text fit */
 .wordSearchBox{margin:12px 0 16px;padding:12px;border:1px solid #dceff2;border-radius:16px;background:#f8fcfd}
 .wordSearchRow{display:flex;gap:8px;align-items:center}
 .wordSearchInput{flex:1;min-width:0;height:44px;padding:0 14px;border:2px solid #11abc0;border-radius:12px;font-size:16px;box-sizing:border-box;background:#fff;color:#222}
@@ -785,9 +785,18 @@ body:not(.quiz-active35) main#app{
 }
 </style>
 
+
+<style id="popup-long-word-fix-v1-1-56">
+/* Keep the result popup within the viewport and prevent long words/Chunks from being clipped. */
+.resultPopup { box-sizing: border-box !important; width: min(440px, calc(100vw - 24px)) !important; max-width: calc(100vw - 24px) !important; }
+.resultPopup .popupWord { display:block; max-width:100%; white-space:normal !important; overflow-wrap:anywhere; word-break:normal; line-height:1.25; }
+.resultPopup .correctAnswer, .resultPopup .myAnswer { box-sizing:border-box; max-width:100%; overflow-wrap:anywhere; word-break:normal; }
+.resultPopup .correctAnswer strong { max-width:100%; white-space:normal; overflow-wrap:anywhere; word-break:normal; line-height:1.25; }
+</style>
+
 </head>
 <body>
-<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.55</span></h1>
+<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.56</span></h1>
 <nav><button id="navHome" class="active">홈</button><button id="navQuiz">퀴즈</button><button id="navWrong">틀린 단어</button><button id="navChunks">Chunk</button><button id="navRecords">학습 기록</button><button id="navStats">통계</button><button id="navSettings">설정</button></nav></header>
 <main id="app"></main><div id="toast" class="toast hidden"></div>
 <script>
@@ -895,20 +904,25 @@ function speakWord(w){
   }
   const synth=window.speechSynthesis;
   try{
-    // iOS Safari/PWA에서 음성 엔진이 일시 정지된 상태로 남는 경우를 복구한다.
+    // v1.1.56: iOS에서 cancel 직후 speak/resume을 연달아 실행하면 첫 음절이 잘릴 수 있어
+    // 기존 큐를 비운 뒤 짧게 기다렸다가 새 utterance를 한 번만 등록한다.
     synth.cancel();
-    synth.resume();
     const voices=loadSpeechVoices();
     const u=new SpeechSynthesisUtterance(text);
     u.lang="en-US";
     u.rate=.78;
-    // 영어 음성이 있으면 명시적으로 선택하여 iOS의 음성 선택 실패를 줄인다.
     const voice=voices.find(v=>/^en-US$/i.test(v.lang))
       || voices.find(v=>/^en[-_]/i.test(v.lang));
     if(voice)u.voice=voice;
-    synth.speak(u);
-    // 일부 iOS 버전에서는 첫 speak()가 조용히 대기하는 경우가 있어 한 번 더 resume한다.
-    setTimeout(()=>{try{if(synth.speaking||synth.pending)synth.resume()}catch(e){}},50);
+    u.onerror=()=>{};
+    setTimeout(()=>{
+      try{
+        synth.resume();
+        synth.speak(u);
+      }catch(e){
+        toast("발음을 재생할 수 없어요. 잠시 후 다시 눌러주세요.");
+      }
+    },120);
   }catch(e){
     toast("발음을 재생할 수 없어요. 잠시 후 다시 눌러주세요.");
   }
