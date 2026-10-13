@@ -786,17 +786,17 @@ body:not(.quiz-active35) main#app{
 </style>
 
 
-<style id="popup-long-word-fix-v1-1-56">
-/* Keep the result popup within the viewport and prevent long words/Chunks from being clipped. */
-.resultPopup { box-sizing: border-box !important; width: min(440px, calc(100vw - 24px)) !important; max-width: calc(100vw - 24px) !important; }
-.resultPopup .popupWord { display:block; max-width:100%; white-space:normal !important; overflow-wrap:anywhere; word-break:normal; line-height:1.25; }
-.resultPopup .correctAnswer, .resultPopup .myAnswer { box-sizing:border-box; max-width:100%; overflow-wrap:anywhere; word-break:normal; }
-.resultPopup .correctAnswer strong { max-width:100%; white-space:normal; overflow-wrap:anywhere; word-break:normal; line-height:1.25; }
+<style id="popup-long-word-fix-v1-1-57">
+/* Scoped to the answer popup: allow long English terms and meanings to wrap on small screens. */
+.resultPopup { box-sizing:border-box !important; width:min(440px, calc(100vw - 24px)) !important; max-width:calc(100vw - 24px) !important; }
+.resultPopup .popupWord { display:block; width:100%; max-width:100%; box-sizing:border-box; white-space:normal !important; overflow-wrap:anywhere; word-break:normal; line-height:1.25; }
+.resultPopup .correctAnswer, .resultPopup .myAnswer { box-sizing:border-box; width:100%; max-width:100%; white-space:normal; overflow-wrap:anywhere; word-break:normal; }
+.resultPopup .correctAnswer > *, .resultPopup .myAnswer > * { max-width:100%; white-space:normal; overflow-wrap:anywhere; word-break:normal; }
 </style>
 
 </head>
 <body>
-<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.56</span></h1>
+<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.57</span></h1>
 <nav><button id="navHome" class="active">홈</button><button id="navQuiz">퀴즈</button><button id="navWrong">틀린 단어</button><button id="navChunks">Chunk</button><button id="navRecords">학습 기록</button><button id="navStats">통계</button><button id="navSettings">설정</button></nav></header>
 <main id="app"></main><div id="toast" class="toast hidden"></div>
 <script>
@@ -896,7 +896,7 @@ if("speechSynthesis" in window){
   loadSpeechVoices();
   window.speechSynthesis.addEventListener?.("voiceschanged",loadSpeechVoices);
 }
-function speakWord(w){
+function speakWord(w, autoFirstPlayback=false){
   const text=String(w??"").trim();
   if(!text)return;
   if(!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)){
@@ -904,8 +904,23 @@ function speakWord(w){
   }
   const synth=window.speechSynthesis;
   try{
-    // v1.1.56: iOS에서 cancel 직후 speak/resume을 연달아 실행하면 첫 음절이 잘릴 수 있어
-    // 기존 큐를 비운 뒤 짧게 기다렸다가 새 utterance를 한 번만 등록한다.
+    // Preserve the established playback path for manual replay and all other screens.
+    if(!autoFirstPlayback){
+      synth.cancel();
+      synth.resume();
+      const voices=loadSpeechVoices();
+      const u=new SpeechSynthesisUtterance(text);
+      u.lang="en-US";
+      u.rate=.78;
+      const voice=voices.find(v=>/^en-US$/i.test(v.lang))
+        || voices.find(v=>/^en[-_]/i.test(v.lang));
+      if(voice)u.voice=voice;
+      synth.speak(u);
+      setTimeout(()=>{try{if(synth.speaking||synth.pending)synth.resume()}catch(e){}},50);
+      return;
+    }
+
+    // Only the first automatic pronunciation from the answer popup uses this path.
     synth.cancel();
     const voices=loadSpeechVoices();
     const u=new SpeechSynthesisUtterance(text);
@@ -1411,7 +1426,7 @@ function showPopup(type,w,selected){
 
   // 정답/오답 팝업이 뜨는 순간 해당 단어를 자동으로 한 번 읽어준다.
   // answer()에서 사용자 탭 이벤트가 이어진 동기 호출이므로 iOS Safari/PWA의 음성 재생 제한을 피할 수 있다.
-  if(type === "ok" || type === "bad") speakWord(w.word);
+  if(type === "ok" || type === "bad") speakWord(w.word, true);
 
   // 팝업 내부에 자동 전환 카운터를 표시하고 1초마다 남은 시간을 갱신한다.
   // overlay가 아니라 실제 resultPopup 안에 넣어 iPhone에서도 팝업과 함께 안정적으로 보이게 한다.
