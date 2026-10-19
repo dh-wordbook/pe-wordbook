@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>P.E. Wordbook v1.1.52</title>
+<title>P.E. Wordbook v1.1.60</title>
 <style>
 :root{--main:#08aec3;--red:#ff5b61;--green:#10a77a;--ink:#222;--muted:#8b8b8b;--bg:#f7f8f9;--line:#eee;--soft:#eefbfc}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;color:var(--ink);background:var(--bg)}
@@ -785,9 +785,18 @@ body:not(.quiz-active35) main#app{
 }
 </style>
 
+
+<style id="v1-1-60-thumb-friendly-popup">
+/* v1.1.60: make result popup actions easy to reach with either hand */
+.resultPopup .popupActions{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:10px!important;margin:12px 0!important;width:100%!important}
+.resultPopup .popupActions .btn{display:block!important;width:100%!important;flex:none!important;min-height:52px!important;margin:0!important;padding:14px 16px!important;font-size:16px!important;border-radius:14px!important;touch-action:manipulation}
+.resultPopup .popupActions .btn:not(.secondary){order:0}
+.resultPopup .popupActions .btn.secondary{order:1}
+@media(max-width:520px){.resultPopup{padding:22px 18px!important}.resultPopup .popupActions .btn{min-height:54px!important}}
+</style>
 </head>
 <body>
-<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.58</span></h1>
+<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.59</span></h1>
 <nav><button id="navHome" class="active">홈</button><button id="navQuiz">퀴즈</button><button id="navWrong">틀린 단어</button><button id="navChunks">Chunk</button><button id="navRecords">학습 기록</button><button id="navStats">통계</button><button id="navSettings">설정</button></nav></header>
 <main id="app"></main><div id="toast" class="toast hidden"></div>
 <script>
@@ -927,9 +936,9 @@ function bindSpeechButtons(){
   },true);
 }
 function parseMeaning(raw,quizMode=false){
-  const map={"명":"n","동":"v","형":"adj","부":"adv","전":"prep","접":"conj","대":"pron","감":"interj","관":"art","조":"aux","한":"det","숙":"idiom",
+  const map={"명":"n","동":"v","형":"adj","부":"adv","전":"prep","접":"conj","대":"pron","감":"interj","관":"art","조":"aux","한":"det","숙":"idiom","표현":"표현",
              "n.":"n","v.":"v","adj.":"adj","adv.":"adv","prep.":"prep","conj.":"conj","pron.":"pron","interj.":"interj","art.":"art","aux.":"aux","det.":"det","idiom":"idiom"};
-  const marker=/^(명|동|형|부|전|접|대|감|관|조|한|숙|n\.|v\.|adj\.|adv\.|prep\.|conj\.|pron\.|interj\.|art\.|aux\.|det\.|idiom)(?=\s|$)\s*(.*)$/;
+  const marker=/^(명|동|형|부|전|접|대|감|관|조|한|숙|표현|n\.|v\.|adj\.|adv\.|prep\.|conj\.|pron\.|interj\.|art\.|aux\.|det\.|idiom)(?=\s|$)\s*(.*)$/;
   const parts=String(raw||"").split(/\s*\/\s*/);
   const pending=[],out=[];
   let lastPos="";
@@ -978,7 +987,7 @@ function parseMeaning(raw,quizMode=false){
 
 function renderMeaning(raw,quizMode=false){
   const arr=parseMeaning(raw,quizMode);
-  return `<div class="meaningBlock">${arr.map(x=>`<div class="posLine">${x.pos?`<span class="posTag">${esc(x.pos)}.</span>`:""}<span>${esc(x.text)}</span></div>`).join("")}</div>`;
+  return `<div class="meaningBlock">${arr.map(x=>`<div class="posLine">${x.pos?`<span class="posTag">${esc(x.pos==="표현"?"표현":x.pos+".")}</span>`:""}<span>${esc(x.text)}</span></div>`).join("")}</div>`;
 }
 
 function isWrongWord(w){
@@ -1209,6 +1218,33 @@ function getQuizSourcePool(source=selectedSource){
   if(source==="SUP") return words.filter(w=>w.source==="SUP");
   return words;
 }
+
+// 퀴즈 한 세션에서는 같은 영단어가 서로 다른 ID로 중복 출제되지 않도록 한다.
+// 원본 WORDS 데이터는 수정하지 않고, 출제 후보만 표제어 기준으로 정리한다.
+function uniqueQuizWords(pool){
+  const chosen=new Map(),counts=new Map();
+  for(const w of pool){
+    const key=String(w.word||"").trim().toLocaleLowerCase();
+    if(!key)continue;
+    const count=(counts.get(key)||0)+1;
+    counts.set(key,count);
+    // 중복 표제어 중 어느 항목을 남길지 세션마다 무작위로 선택한다.
+    // 의미가 서로 다른 중복 항목(assert 등)이 영구적으로 제외되는 것을 방지한다.
+    if(!chosen.has(key) || Math.random()<1/count)chosen.set(key,w);
+  }
+  return [...chosen.values()];
+}
+
+// 3회 연속 정답 단어는 출제 가중치를 낮춘다. 오답/미숙 단어는 상대적으로 더 자주 선택된다.
+// weighted order는 전체 퀴즈에서도 순서를 편향시키고, 20/50/100/500문제에서는 실제 선택 빈도에 반영된다.
+function weightedQuizOrder(pool){
+  return pool.map(w=>{
+    const st=Number(stats[w.id]?.streak||0);
+    const weight=st>=3?0.25:1;
+    const r=Math.max(Math.random(),1e-12);
+    return {w,score:-Math.log(r)/weight};
+  }).sort((a,b)=>a.score-b.score).map(x=>x.w);
+}
 function selectQuizSource(source){
   selectedSource=source;
   renderQuizSetup();
@@ -1225,24 +1261,25 @@ function renderQuizSetup(){
   </div>
   <p style="margin-top:14px"><small>현재 선택: <b>${sourceLabel}</b> · 출제 가능 단어 ${sourcePool.length}개 · 같은 세션에서는 중복 출제하지 않아요.</small></p>
   <h3>문제 수 선택</h3><div class="grid">
-  <button class="btn secondary quizCount" onclick="beginSelectedQuiz(20,this)">20문제</button><button class="btn secondary quizCount" onclick="beginSelectedQuiz(50,this)">50문제</button>
-  <button class="btn secondary quizCount" onclick="beginSelectedQuiz(100,this)">100문제</button><button class="btn secondary quizCount" onclick="beginSelectedQuiz(500,this)">500문제</button></div>
+  <button class="btn secondary quizCount" onclick="beginSelectedQuiz(20,this)">20문제</button><button class="btn secondary quizCount" onclick="beginSelectedQuiz(100,this)">100문제</button>
+  <button class="btn secondary quizCount" onclick="beginSelectedQuiz(250,this)">250문제</button><button class="btn secondary quizCount" onclick="beginSelectedQuiz(500,this)">500문제</button></div>
   <button class="btn secondary" onclick="renderHome()">취소</button></div>`;
 }
 function openQuizSetup(mode,day=null){
   selectedMode=mode;
   selectedSource="ALL";
   if(mode==="day"){
-    let pool=words.filter(w=>w.day===day);
+    let pool=uniqueQuizWords(words.filter(w=>w.day===day));
     if(pool.length<4)return toast("퀴즈에는 최소 4개의 단어가 필요해요.");
-    quiz={pool:shuffle(pool),index:0,correct:0,answers:[],locked:false,timer:null,session:startSession("day",pool.length,pool.length,day,{source:"MAIN"}),sessionRecorded:false};
+    pool=weightedQuizOrder(pool);
+    quiz={pool,index:0,correct:0,answers:[],locked:false,timer:null,session:startSession("day",pool.length,pool.length,day,{source:"MAIN"}),sessionRecorded:false};
     return showQuestion()
   }
   if(mode==="wrong"){
     const pool=words.filter(isWrongWord);
     document.getElementById("app").innerHTML=`<div class="card"><h2>오답 퀴즈</h2><p><small>출제 가능 단어: ${pool.length}개 · 같은 세션에서는 중복 출제하지 않아요.</small></p><h3>문제 수 선택</h3><div class="grid">
-    <button class="btn secondary quizCount" onclick="beginSelectedQuiz(20,this)">20문제</button><button class="btn secondary quizCount" onclick="beginSelectedQuiz(50,this)">50문제</button>
-    <button class="btn secondary quizCount" onclick="beginSelectedQuiz(100,this)">100문제</button><button class="btn secondary quizCount" onclick="beginSelectedQuiz(500,this)">500문제</button></div>
+    <button class="btn secondary quizCount" onclick="beginSelectedQuiz(20,this)">20문제</button><button class="btn secondary quizCount" onclick="beginSelectedQuiz(100,this)">100문제</button>
+    <button class="btn secondary quizCount" onclick="beginSelectedQuiz(250,this)">250문제</button><button class="btn secondary quizCount" onclick="beginSelectedQuiz(500,this)">500문제</button></div>
     <button class="btn secondary" onclick="renderHome()">취소</button></div>`;
     return;
   }
@@ -1253,10 +1290,11 @@ function beginSelectedQuiz(count, btn=null){
     document.querySelectorAll(".quizCount").forEach(b=>b.classList.remove("selected"));
     btn.classList.add("selected");
   }
-  let pool=selectedMode==="wrong"?words.filter(isWrongWord):getQuizSourcePool(selectedSource);
+  let pool=uniqueQuizWords(selectedMode==="wrong"?words.filter(isWrongWord):getQuizSourcePool(selectedSource));
   if(pool.length<4)return toast("퀴즈에는 최소 4개의 단어가 필요해요.");
   let n=count==="all"?pool.length:Math.min(Number(count),pool.length);
-  quiz={pool:shuffle(pool).slice(0,n),index:0,correct:0,answers:[],locked:false,timer:null,session:startSession(selectedMode,n,pool.length,null,{source:selectedMode==="wrong"?"ALL":selectedSource}),sessionRecorded:false};showQuestion()
+  pool=weightedQuizOrder(pool).slice(0,n);
+  quiz={pool,index:0,correct:0,answers:[],locked:false,timer:null,session:startSession(selectedMode,n,pool.length,null,{source:selectedMode==="wrong"?"ALL":selectedSource}),sessionRecorded:false};showQuestion()
 }
 function getQuizTimerSeconds(){
   const n=Number(localStorage.getItem("pe10_timer"));
@@ -1648,7 +1686,7 @@ function buildBackupData(){
   return {
     backupType:"PE_WORDBOOK_LEARNING_BACKUP",
     formatVersion:1,
-    appVersion:"1.1.55",
+    appVersion:"1.1.59",
     exportedAt:new Date().toISOString(),
     wordbookMeta,
     learning:{
