@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>P.E. Wordbook v1.1.60</title>
+<title>P.E. Wordbook v1.1.62</title>
 <style>
 :root{--main:#08aec3;--red:#ff5b61;--green:#10a77a;--ink:#222;--muted:#8b8b8b;--bg:#f7f8f9;--line:#eee;--soft:#eefbfc}
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;color:var(--ink);background:var(--bg)}
@@ -794,9 +794,20 @@ body:not(.quiz-active35) main#app{
 .resultPopup .popupActions .btn.secondary{order:1}
 @media(max-width:520px){.resultPopup{padding:22px 18px!important}.resultPopup .popupActions .btn{min-height:54px!important}}
 </style>
+
+<style id="v1-1-62-popup-order-fix">
+/* v1.1.62: requested order: word > detail > replay pronunciation > next question */
+.resultPopup .popupDetailButton,
+.resultPopup .popupNextButton{display:block!important;width:100%!important;min-height:54px!important;box-sizing:border-box!important;margin:12px 0!important;border-radius:16px!important;font-size:18px!important;}
+.resultPopup .popupDetailButton{margin-top:14px!important;}
+.resultPopup .speak{display:block!important;width:100%!important;margin:8px 0 10px!important;min-height:44px!important;}
+.resultPopup .popupNextButton{margin-top:8px!important;margin-bottom:12px!important;}
+.resultPopup .popupActions{display:none!important;}
+</style>
+
 </head>
 <body>
-<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.59</span></h1>
+<header><h1>P.E. Wordbook <span class="appVersion35">v1.1.62</span></h1>
 <nav><button id="navHome" class="active">홈</button><button id="navQuiz">퀴즈</button><button id="navWrong">틀린 단어</button><button id="navChunks">Chunk</button><button id="navRecords">학습 기록</button><button id="navStats">통계</button><button id="navSettings">설정</button></nav></header>
 <main id="app"></main><div id="toast" class="toast hidden"></div>
 <script>
@@ -1421,11 +1432,9 @@ function showPopup(type,w,selected){
   let p=document.createElement("div"); p.className="resultOverlay";
   p.innerHTML=`<div class="resultPopup ${type}">
     <div class="popupWord">${esc(w.word)}</div>
-    <div class="popupActions">
-      <button class="btn secondary" onclick="let p=this.closest('.resultOverlay');if(p._advanceTimer)clearInterval(p._advanceTimer);if(p._countdownTimer)clearInterval(p._countdownTimer);openDetail(${w.id});p.remove()">단어 상세 보기</button>
-      <button class="btn" onclick="let p=this.closest('.resultOverlay');if(p._advanceTimer)clearInterval(p._advanceTimer);if(p._countdownTimer)clearInterval(p._countdownTimer);p.remove();continueQuizAfterPopup()">다음 문제</button>
-    </div>
+    <button class="btn secondary popupDetailButton" onclick="let p=this.closest('.resultOverlay');if(p._advanceTimer)clearTimeout(p._advanceTimer);if(p._countdownTimer)clearInterval(p._countdownTimer);openDetail(${w.id});p.remove()">단어 상세 보기</button>
     <button class="speak" data-word=${JSON.stringify(w.word)}>🔊 발음 다시 듣기</button>
+    <button class="btn popupNextButton" onclick="let p=this.closest('.resultOverlay');if(p._advanceTimer)clearTimeout(p._advanceTimer);if(p._countdownTimer)clearInterval(p._countdownTimer);p.remove();continueQuizAfterPopup()">다음 문제</button>
     ${type==="bad"?`<div class="myAnswer">내 선택${renderMeaning(selected,true)}</div>`:""}
     ${type==="timeout"?`<div class="timeoutMsg">제한 시간 안에 답을 선택하지 못했어요.</div>`:""}
     <div class="correctAnswer"><span>✓ 정답</span>${renderMeaning(w.meaning,true)}</div>
